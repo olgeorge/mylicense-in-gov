@@ -44,5 +44,7 @@ functions:
       - http: GET /mylicense/statuses
       - http: OPTIONS /mylicense/states
       - http: GET /mylicense/states
-      - http: OPTIONST /mylicense/search
+      - http: OPTIONS /mylicense/searchOptions
+      - http: GET /mylicense/searchOptions
+      - http: OPTIONS /mylicense/search
       - http: POST /mylicense/search

@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { Loggable } = require('../common/aspects');
+const { Loggable, Cachable, Retryable } = require('../common/aspects');
 const mylicenseClient = require('../clients/mylicenseClient');
 const cheerio = require('cheerio');
 const setCookie = require('set-cookie-parser');
@@ -43,19 +43,6 @@ const getViewStateFromPage = (webPage) => {
     return { __VIEWSTATE, __VIEWSTATEGENERATOR };
 };
 
-const getSearchWebpage = async () => {
-    const response = await mylicenseClient.get('/everification/Search.aspx');
-    return response.data;
-};
-
-const getSearchCookies = async () => {
-    const response = await mylicenseClient.get('/everification/Search.aspx');
-    const cookies = setCookie.parse(response.headers['set-cookie']);
-    return _.reduce(cookies, (result, cookie) => {
-        return result + `${cookie.name}=${cookie.value}; `;
-    }, "");
-};
-
 const postRequest = async (url, data, Cookie) => {
     const postData = querystring.stringify(data);
     return mylicenseClient.post(url, postData, {
@@ -67,80 +54,112 @@ const postRequest = async (url, data, Cookie) => {
     });
 };
 
-const executeSearchAndGetSearchPage = async ({
-    profession,
-    licenseType,
-    firstOrMidName,
-    lastName,
-    licenseNumber,
-    status,
-    county,
-    city,
-    state,
-    zipcode,
-    Cookie,
-}) => {
-    const response = await postRequest('/everification/Search.aspx', {
-        "__EVENTTARGET": "",
-        "__EVENTARGUMENT": "",
-        "t_web_lookup__profession_name": profession,
-        "t_web_lookup__license_type_name": licenseType,
-        "t_web_lookup__first_name": firstOrMidName,
-        "t_web_lookup__last_name": lastName,
-        "t_web_lookup__license_no": licenseNumber,
-        "t_web_lookup__license_status_name": status,
-        "t_web_lookup__addr_county": county,
-        "t_web_lookup__addr_city": city,
-        "t_web_lookup__addr_state": state,
-        "t_web_lookup__addr_zipcode": zipcode,
-        "sch_button": "Search",
-    }, Cookie);
-    if (!response.request || !response.request.path || response.request.path !== '/everification/SearchResults.aspx') {
-        throw new Error("Failure to fetch search results for the given query");
-    }
-    return response.data;
-};
+class MylicenseGateway {
 
-const getSearchResults = async ({
-    __VIEWSTATE,
-    __VIEWSTATEGENERATOR,
-    pageNumber,
-    Cookie,
-}) => {
-    const response = await postRequest('/everification/SearchResults.aspx', {
-        "CurrentPageIndex": 1,
-        "__EVENTTARGET": `datagrid_results:_ctl44:_ctl${pageNumber - 1}`,
-        "__EVENTARGUMENT": "",
+    // No logging as they are useless here
+    @Cachable
+    @Retryable
+    async _getSearchWebpage() {
+        const response = await mylicenseClient.get('/everification/Search.aspx');
+        return response.data;
+    }
+
+    // No caching as cookies can expire
+    @Loggable
+    @Retryable
+    async _getSearchCookies() {
+        const response = await mylicenseClient.get('/everification/Search.aspx');
+        const cookies = setCookie.parse(response.headers['set-cookie']);
+        return _.reduce(cookies, (result, cookie) => {
+            return result + `${cookie.name}=${cookie.value}; `;
+        }, "");
+    }
+
+    @Loggable
+    @Retryable
+    async _executeSearchAndGetSearchPage ({
+        profession,
+        licenseType,
+        firstOrMidName,
+        lastName,
+        licenseNumber,
+        status,
+        county,
+        city,
+        state,
+        zipcode,
+        Cookie,
+    }) {
+        const response = await postRequest('/everification/Search.aspx', {
+            "__EVENTTARGET": "",
+            "__EVENTARGUMENT": "",
+            "t_web_lookup__profession_name": profession,
+            "t_web_lookup__license_type_name": licenseType,
+            "t_web_lookup__first_name": firstOrMidName,
+            "t_web_lookup__last_name": lastName,
+            "t_web_lookup__license_no": licenseNumber,
+            "t_web_lookup__license_status_name": status,
+            "t_web_lookup__addr_county": county,
+            "t_web_lookup__addr_city": city,
+            "t_web_lookup__addr_state": state,
+            "t_web_lookup__addr_zipcode": zipcode,
+            "sch_button": "Search",
+        }, Cookie);
+        if (!response.request || !response.request.path || response.request.path !== '/everification/SearchResults.aspx') {
+            throw new Error("Failure to fetch search results for the given query");
+        }
+        return response.data;
+    };
+
+    @Loggable
+    @Retryable
+    async _getSearchResults({
         __VIEWSTATE,
         __VIEWSTATEGENERATOR,
-    }, Cookie);
-    const { items, numPages } = getSearchResultsFromPage(response.data);
-    if (pageNumber > numPages) {
-        return { items: [], numPages };
-    }
-    return { items, numPages };
-};
-
-class MylicenseGateway {
+        pageNumber,
+        Cookie,
+    }) {
+        const response = await postRequest('/everification/SearchResults.aspx', {
+            "CurrentPageIndex": 1,
+            "__EVENTTARGET": `datagrid_results:_ctl44:_ctl${pageNumber - 1}`,
+            "__EVENTARGUMENT": "",
+            __VIEWSTATE,
+            __VIEWSTATEGENERATOR,
+        }, Cookie);
+        const { items, numPages } = getSearchResultsFromPage(response.data);
+        if (pageNumber > numPages) {
+            return { items: [], numPages };
+        }
+        return { items, numPages };
+    };
 
     @Loggable
     async getAvailableProfessions() {
-        return getSelectOptionsFromPage(await getSearchWebpage(), 't_web_lookup__profession_name');
+        return getSelectOptionsFromPage(await this._getSearchWebpage(), 't_web_lookup__profession_name');
     }
 
     @Loggable
     async getAvailableLicenseTypes() {
-        return getSelectOptionsFromPage(await getSearchWebpage(), 't_web_lookup__license_type_name');
+        return getSelectOptionsFromPage(await this._getSearchWebpage(), 't_web_lookup__license_type_name');
     }
 
     @Loggable
     async getAvailableStatuses() {
-        return getSelectOptionsFromPage(await getSearchWebpage(), 't_web_lookup__license_status_name');
+        return getSelectOptionsFromPage(await this._getSearchWebpage(), 't_web_lookup__license_status_name');
     }
 
     @Loggable
     async getStates() {
-        return getSelectOptionsFromPage(await getSearchWebpage(), 't_web_lookup__addr_state');
+        return getSelectOptionsFromPage(await this._getSearchWebpage(), 't_web_lookup__addr_state');
+    }
+
+    @Loggable
+    async getSearchOptions() {
+        const professions = await this.getAvailableProfessions();
+        const licenseTypes = await this.getAvailableLicenseTypes();
+        const statuses = await this.getAvailableStatuses();
+        const states = await this.getStates();
+        return { professions, licenseTypes, statuses, states };
     }
 
     @Loggable
@@ -157,8 +176,8 @@ class MylicenseGateway {
         zipcode = "",
         pageNumber = 1,
     }) {
-        const Cookie = await getSearchCookies();
-        const webPage = await executeSearchAndGetSearchPage({
+        const Cookie = await this._getSearchCookies();
+        const webPage = await this._executeSearchAndGetSearchPage({
             profession,
             licenseType,
             firstOrMidName,
@@ -171,7 +190,7 @@ class MylicenseGateway {
             zipcode,
             Cookie,
         });
-        const { items, numPages } = await getSearchResults({
+        const { items, numPages } = await this._getSearchResults({
             ...getViewStateFromPage(webPage),
             pageNumber,
             Cookie,

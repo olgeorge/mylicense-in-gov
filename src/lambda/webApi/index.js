@@ -25,6 +25,11 @@ class Router {
     }
 
     @Loggable
+    async getSearchOptions() {
+        return mylicenseService.getSearchOptions();
+    }
+
+    @Loggable
     async search({
         profession,
         licenseType,
@@ -59,4 +64,5 @@ module.exports = buildLambdaApi(new Router())
     .get('/mylicense/licenseTypes', (lambda, request) => lambda.getAvailableLicenseTypes())
     .get('/mylicense/statuses', (lambda, request) => lambda.getAvailableStatuses())
     .get('/mylicense/states', (lambda, request) => lambda.getStates())
+    .get('/mylicense/searchOptions', (lambda, request) => lambda.getSearchOptions())
     .post('/mylicense/search', (lambda, request) => lambda.search(request.body));

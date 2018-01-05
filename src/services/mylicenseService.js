@@ -24,6 +24,11 @@ class MylicenseService {
     }
 
     @Loggable
+    async getSearchOptions() {
+        return mylicenseGateway.getSearchOptions();
+    }
+
+    @Loggable
     async search({
         profession,
         licenseType,
