@@ -35,6 +35,8 @@ Default output format [None]: json
 
 4. Install serverless globally `npm i serverless -g`
 
+5. Decrypt the secrets file (see below) `serverless decrypt -s <stage> -p <secrets-password>`
+
 ## Development
 
 ### Coding practices
@@ -67,7 +69,7 @@ In order to run the server locally, simply execute `./run-locally`. This will ru
 
 ## Testing
 
-The simplest test to check if Lambda is running on AWS, run `./test.sh [<stage>]`. For a more thorough API testing against localhost, run `./test-locally`.
+The simplest test to check if Lambda is running on AWS, run `./test.sh [<stage>]`. For a more thorough API testing against localhost, run `./run-locally` and then in a separate tab `./test-locally`.
 
 ## Deployment
 
