@@ -13,14 +13,14 @@ All AWS functions can be found here
 https://eu-west-1.console.aws.amazon.com/lambda/home?region=eu-west-1#/functions
 
 ## Set up (on Linux/OSX)
-1. Install AWS CLI 
+1. Install AWS CLI (skip for local-only development) 
 http://docs.aws.amazon.com/cli/latest/userguide/installing.html
 ```
 pip install awscli --upgrade --user
 aws --version
 ```
 
-2. Configure AWS CLI
+2. Configure AWS CLI (skip for local-only development)
 http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 
 ```
@@ -59,10 +59,15 @@ The `serverless-secrets-plugin` is a serverless plugin which allows you to encry
 - Ask one of the team members for it over a **secure communication channel**
 - **Never check in the `secrets.<stage>.yml`**. Only check in the encrypted version `secrets.<stage>.yml.encrypted`
 - **Never store any sensitive information anywhere** except for the `secrets.<stage>.yml`, including this readme.  
+- The `secrets-password` for this repo is `secrets`
 
 ## Running
 
-In order to run the server locally, simply execute `npm start`. This will run the prod stage on port 8082. If you want to change that, you can run manually `serverless offline --port <port> --stage <stage>`.
+In order to run the server locally, simply execute `./run-locally`. This will run the prod stage on port 8082. If you want to change that, you can run manually `serverless offline --port <port> --stage <stage>`.
+
+## Testing
+
+The simplest test to check if Lambda is running on AWS, run `./test.sh [<stage>]`. For a more thorough API testing against localhost, run `./test-locally`.
 
 ## Deployment
 
@@ -70,7 +75,3 @@ In order to deploy, execute `./deploy.sh <stage> <secrets-password> [<aws-profil
 - `stage` is only prod (right now)
 - `<secrets-password>` is the password for `secrets.<stage>.yml.encrypted` file
 - `aws-profile` is optional, specify it if you are not using default AWS profile
-
-## Testing
-
-The simplest test to check if Lambda is running, run `./test.sh <stage>`. For a more in-depth testing use Postman to test all existing APIs.

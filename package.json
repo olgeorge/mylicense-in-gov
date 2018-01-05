@@ -1,7 +1,7 @@
 {
   "name": "website-backend",
   "version": "1.0.0",
-  "description": "Serverless backend for covesting.io",
+  "description": "Serverless backend",
   "private": true,
   "scripts": {
     "start": "serverless offline --port 8082 --stage prod",
