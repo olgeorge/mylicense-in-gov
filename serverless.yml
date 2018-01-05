@@ -1,0 +1,48 @@
+service: mylicense-backend
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-secrets-plugin
+  - serverless-plugin-scripts
+
+# Variables
+custom:
+  webpackIncludeModules: true
+  serverless-offline:
+    babelOptions:
+      presets: ["es2017", "stage-0"]
+      plugins: ["transform-async-to-generator", "transform-decorators-legacy"]
+  scripts:
+    commands:
+      # Scripts to be ran locally
+      setupScripts: >
+        ./node_modules/.bin/serverless webpack --out build
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: eu-west-1
+  environment: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+
+functions:
+  ping:
+    handler: src/lambda/ping.proxyRouter
+    events:
+      - http: OPTIONS /ping
+      - http: GET /ping
+  webApi:
+    handler: src/lambda/webApi.proxyRouter
+    timeout: 30
+    events:
+      - http: OPTIONS /mylicense/professions
+      - http: GET /mylicense/professions
+      - http: OPTIONS /mylicense/licenseTypes
+      - http: GET /mylicense/licenseTypes
+      - http: OPTIONS /mylicense/statuses
+      - http: GET /mylicense/statuses
+      - http: OPTIONS /mylicense/states
+      - http: GET /mylicense/states
+      - http: OPTIONST /mylicense/search
+      - http: POST /mylicense/search

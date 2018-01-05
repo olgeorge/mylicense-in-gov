@@ -1,0 +1,1 @@
+module.exports.HTTP_GATEWAY_TIMEOUT_MS = 20000;

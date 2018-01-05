@@ -1,0 +1,12 @@
+node_modules
+build
+.webpack
+.serverless
+.DS_Store
+.env
+.idea
+.vscode
+npm-debug.log
+secrets.*.yml
+*.pem
+package-lock.json
